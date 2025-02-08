@@ -4,56 +4,46 @@ public class Rental {
     private int id;
     private int userId;
     private int apartmentId;
-    private String startDate; // Дата заезда
-    private String duration;  // Продолжительность аренды (например, "1 день", "1 месяц", "1 год")
+    private String startDate;
+    private String endDate;
 
-    // Конструктор
-    public Rental(int id, int userId, int apartmentId, String startDate, String duration) {
-        this.id = id;
-        this.userId = userId;
-        this.apartmentId = apartmentId;
-        this.startDate = startDate;
-        this.duration = duration;
+    public Rental(int id, int userId, int apartmentId, String startDate, String endDate, String status) {}
+
+    public Rental(int userId, int apartmentId, String startDate, String endDate) {
+        setUserId(userId);
+        setApartmentId(apartmentId);
+        setStartDate(startDate);
+        setEndDate(endDate);
     }
 
-    // Геттеры и сеттеры
-    public int getId() {
-        return id;
+    public Rental(int id, int userId, int apartmentId, String startDate, String endDate) {
+        this(userId, apartmentId, startDate, endDate);
+        setId(id);
     }
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-    public int getUserId() {
-        return userId;
-    }
+    public int getUserId() { return userId; }
+    public void setUserId(int userId) { this.userId = userId; }
 
-    public void setUserId(int userId) {
-        this.userId = userId;
-    }
+    public int getApartmentId() { return apartmentId; }
+    public void setApartmentId(int apartmentId) { this.apartmentId = apartmentId; }
 
-    public int getApartmentId() {
-        return apartmentId;
-    }
+    public String getStartDate() { return startDate; }
+    public void setStartDate(String startDate) { this.startDate = startDate; }
 
-    public void setApartmentId(int apartmentId) {
-        this.apartmentId = apartmentId;
-    }
+    public String getEndDate() { return endDate; }
+    public void setEndDate(String endDate) { this.endDate = endDate; }
 
-    public String getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(String startDate) {
-        this.startDate = startDate;
-    }
-
-    public String getDuration() {
-        return duration;
-    }
-
-    public void setDuration(String duration) {
-        this.duration = duration;
+    @Override
+    public String toString() {
+        return "Rental{" +
+                "id=" + id +
+                ", userId=" + userId +
+                ", apartmentId=" + apartmentId +
+                ", startDate='" + startDate + '\'' +
+                ", endDate='" + endDate + '\'' +
+                '}';
     }
 }

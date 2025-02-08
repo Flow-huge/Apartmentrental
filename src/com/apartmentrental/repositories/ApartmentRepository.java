@@ -1,156 +1,110 @@
 package com.apartmentrental.repositories;
 
+import com.apartmentrental.data.PostgresDB;
 import com.apartmentrental.models.Apartment;
-import com.apartmentrental.repositories.interfaces.IApartmentRepository;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ApartmentRepository implements IApartmentRepository {
-    private final Connection connection;
+public class ApartmentRepository {
 
-    public ApartmentRepository(Connection connection) {
-        this.connection = connection;
-    }
-
-    @Override
-    public boolean addApartment(Apartment apartment) {
-        try {
-            String query = "INSERT INTO apartments (name, city, district, street, floor, rooms, price_day, price_month, price_year, status, availability_date, rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setInt(1, apartment.getId());
-            statement.setString(2, apartment.getCity());
-            statement.setString(3, apartment.getDistrict());
-            statement.setString(4, apartment.getStreet());
-            statement.setInt(5, apartment.getFloor());
-            statement.setInt(6, apartment.getRooms());
-            statement.setDouble(7, apartment.getPriceDay());
-            statement.setDouble(8, apartment.getPriceMonth());
-            statement.setDouble(9, apartment.getPriceYear());
-            statement.setString(10, apartment.getStatus());
-            statement.setString(11, apartment.getAvailabilityDate());
-            statement.setDouble(12, apartment.getRating());
-            int rowsInserted = statement.executeUpdate();
-            return rowsInserted > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    @Override
-    public Apartment getApartmentById(int id) {
-        try {
-            String query = "SELECT * FROM apartments WHERE id = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setInt(1, id);
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                return new Apartment(
-                        resultSet.getInt("id"),
-                        resultSet.getString("name"),
-                        resultSet.getString("city"),
-                        resultSet.getString("district"),
-                        resultSet.getString("street"),
-                        resultSet.getInt("floor"),
-                        resultSet.getInt("rooms"),
-                        resultSet.getDouble("price_day"),
-                        resultSet.getDouble("price_month"),
-                        resultSet.getDouble("price_year"),
-                        resultSet.getString("status"),
-                        resultSet.getString("availability_date"),
-                        resultSet.getDouble("rating")
-                );
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    @Override
+    // Получение всех квартир
     public List<Apartment> getAllApartments() {
         List<Apartment> apartments = new ArrayList<>();
-        try {
-            String query = "SELECT * FROM apartments";
-            PreparedStatement statement = connection.prepareStatement(query);
-            ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                apartments.add(new Apartment(
-                        resultSet.getInt("id"),
-                        resultSet.getString("name"),
-                        resultSet.getString("city"),
-                        resultSet.getString("district"),
-                        resultSet.getString("street"),
-                        resultSet.getInt("floor"),
-                        resultSet.getInt("rooms"),
-                        resultSet.getDouble("price_day"),
-                        resultSet.getDouble("price_month"),
-                        resultSet.getDouble("price_year"),
-                        resultSet.getString("status"),
-                        resultSet.getString("availability_date"),
-                        resultSet.getDouble("rating")
-                ));
+        String sql = "SELECT * FROM apartments";
+
+        try (Connection conn = PostgresDB.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                apartments.add(createApartmentFromResultSet(rs));
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return apartments;
     }
 
-    @Override
-    public List<Apartment> filterApartments(String city, String district, double minPrice, double maxPrice, int minRooms, int maxRooms, double minRating) {
+    // Получение доступных квартир
+    public List<Apartment> getAvailableApartments() {
         List<Apartment> apartments = new ArrayList<>();
-        try {
-            String query = "SELECT * FROM apartments WHERE city LIKE ? AND district LIKE ? AND price_day >= ? AND price_day <= ? AND rooms >= ? AND rooms <= ? AND rating >= ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setString(1, city.isEmpty() ? "%" : city);
-            statement.setString(2, district.isEmpty() ? "%" : district);
-            statement.setDouble(3, minPrice);
-            statement.setDouble(4, maxPrice);
-            statement.setInt(5, minRooms);
-            statement.setInt(6, maxRooms);
-            statement.setDouble(7, minRating);
-            ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                apartments.add(new Apartment(
-                        resultSet.getInt("id"),
-                        resultSet.getString("name"),
-                        resultSet.getString("city"),
-                        resultSet.getString("district"),
-                        resultSet.getString("street"),
-                        resultSet.getInt("floor"),
-                        resultSet.getInt("rooms"),
-                        resultSet.getDouble("price_day"),
-                        resultSet.getDouble("price_month"),
-                        resultSet.getDouble("price_year"),
-                        resultSet.getString("status"),
-                        resultSet.getString("availability_date"),
-                        resultSet.getDouble("rating")
-                ));
+        String sql = "SELECT * FROM apartments WHERE status = 'available'";
+
+        try (Connection conn = PostgresDB.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                apartments.add(createApartmentFromResultSet(rs));
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return apartments;
     }
 
-    @Override
-    public boolean updateApartmentStatus(int apartmentId, String status, String availabilityDate) {
-        try {
-            String query = "UPDATE apartments SET status = ?, availability_date = ? WHERE id = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setString(1, status);
-            statement.setString(2, availabilityDate);
-            statement.setInt(3, apartmentId);
-            int rowsUpdated = statement.executeUpdate();
-            return rowsUpdated > 0;
-        } catch (Exception e) {
+    // Поиск квартиры по названию
+    public List<Apartment> findApartmentByName(String name) {
+        List<Apartment> apartments = new ArrayList<>();
+        String sql = "SELECT * FROM apartments WHERE name ILIKE ?";
+
+        try (Connection conn = PostgresDB.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, "%" + name + "%");
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                apartments.add(createApartmentFromResultSet(rs));
+            }
+        } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false;
+        return apartments;
+    }
+
+    // Поиск квартиры по фильтрам (город, минимальная и максимальная цена)
+    public List<Apartment> findApartmentsByFilters(String city, double minPrice, double maxPrice) {
+        List<Apartment> apartments = new ArrayList<>();
+        String sql = "SELECT * FROM apartments WHERE city = ? AND price_day BETWEEN ? AND ?";
+
+        try (Connection conn = PostgresDB.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, city);
+            pstmt.setDouble(2, minPrice);
+            pstmt.setDouble(3, maxPrice);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                apartments.add(createApartmentFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return apartments;
+    }
+
+    // Исправленное условное выражение (ошибка в 60 строке)
+    public void updateApartmentStatus(int apartmentId, boolean isAvailable) {
+        String sql = "UPDATE apartments SET status = ? WHERE id = ?";
+
+        try (Connection conn = PostgresDB.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, isAvailable ? "available" : "unavailable"); // Исправлено
+            pstmt.setInt(2, apartmentId);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Apartment createApartmentFromResultSet(ResultSet rs) throws SQLException {
+        return new Apartment(
+        );
     }
 }

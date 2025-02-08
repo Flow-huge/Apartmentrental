@@ -1,35 +1,24 @@
 package com.apartmentrental.controllers;
 
 import com.apartmentrental.models.Apartment;
-import com.apartmentrental.repositories.interfaces.IApartmentRepository;
+import com.apartmentrental.repositories.ApartmentRepository;
 
 import java.util.List;
+import java.util.Scanner;
 
 public class ApartmentController {
-    private final IApartmentRepository apartmentRepository;
+    private final ApartmentRepository apartmentRepository = new ApartmentRepository();
+    private final Scanner scanner = new Scanner(System.in);
 
-    public ApartmentController(IApartmentRepository apartmentRepository) {
-        this.apartmentRepository = apartmentRepository;
+    public void listAllApartments() {
+        List<Apartment> apartments = apartmentRepository.getAllApartments();
+        apartments.forEach(System.out::println);
     }
 
-    public String addApartment(Apartment apartment) {
-        boolean success = apartmentRepository.addApartment(apartment);
-        return success ? "Apartment added successfully!" : "Failed to add apartment.";
-    }
-
-    public List<Apartment> viewAllApartments() {
-        return apartmentRepository.getAllApartments();
-    }
-
-    public List<Apartment> searchApartments(String city, String district, double minPrice, double maxPrice, int minRooms, int maxRooms, double minRating) {
-        return apartmentRepository.filterApartments(city, district, minPrice, maxPrice, minRooms, maxRooms, minRating);
-    }
-
-    public Apartment getApartmentById(int id) {
-        return apartmentRepository.getApartmentById(id);
-    }
-
-    public boolean updateApartmentStatus(int apartmentId, String status, String availabilityDate) {
-        return apartmentRepository.updateApartmentStatus(apartmentId, status, availabilityDate);
+    public void searchApartmentByName() {
+        System.out.print("Введите название квартиры: ");
+        String name = scanner.nextLine();
+        List<Apartment> apartments = apartmentRepository.findApartmentByName(name);
+        apartments.forEach(System.out::println);
     }
 }

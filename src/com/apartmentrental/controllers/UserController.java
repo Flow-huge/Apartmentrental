@@ -1,36 +1,105 @@
 package com.apartmentrental.controllers;
 
-import com.apartmentrental.controllers.interfaces.UserControllerInterface;
 import com.apartmentrental.models.User;
-import com.apartmentrental.repositories.interfaces.IUserRepository;
+import com.apartmentrental.repositories.UserRepository;
 
-public class UserController implements UserControllerInterface {
-    private final IUserRepository userRepository;
+import java.util.Scanner;
 
-    public UserController(IUserRepository userRepository) {
-        this.userRepository = userRepository;
+public class UserController {
+    private final UserRepository userRepository = new UserRepository();
+    private final Scanner scanner = new Scanner(System.in);
+    private User loggedInUser;
+
+    public void start() {
+        while (true) {
+            System.out.println("\nДобро пожаловать в систему аренды квартир!");
+            System.out.println("1. Войти в аккаунт");
+            System.out.println("2. Зарегистрироваться");
+            System.out.println("3. Выйти из программы");
+            System.out.print("Выберите действие: ");
+
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Очистка буфера
+
+            switch (choice) {
+                case 1 -> login();
+                case 2 -> register();
+                case 3 -> {
+                    System.out.println("👋 Выход из программы. До свидания!");
+                    return;
+                }
+                default -> System.out.println("❌ Неверный выбор. Попробуйте снова.");
+            }
+        }
     }
 
-    @Override
-    public String registerUser(String firstName, String lastName, String phone, String password, double walletBalance) {
-        User user = new User(0, firstName, lastName, phone, password, walletBalance);
-        boolean success = userRepository.addUser(user);
-        return success ? "User registered successfully!" : "Registration failed.";
+    // ✅ Добавлен метод login()
+    public void login() {
+        System.out.print("Введите ваш никнейм: ");
+        String username = scanner.nextLine();
+        System.out.print("Введите пароль: ");
+        String password = scanner.nextLine();
+
+        loggedInUser = userRepository.loginUser(username, password);
+        if (loggedInUser != null) {
+            System.out.println("\n✅ Успешный вход!");
+            showUserMenu();
+        } else {
+            System.out.println("\n❌ Ошибка входа: Неверный логин или пароль.");
+        }
     }
 
-    @Override
-    public User loginUser(String phone, String password) {
-        return userRepository.getUserByPhoneAndPassword(phone, password);
+    // ✅ Добавлен метод register()
+    public void register() {
+        System.out.print("Введите ваше имя: ");
+        String firstName = scanner.nextLine();
+        System.out.print("Введите вашу фамилию: ");
+        String lastName = scanner.nextLine();
+        System.out.print("Введите ваш номер телефона: ");
+        String phoneNumber = scanner.nextLine();
+        System.out.print("Введите ваш никнейм: ");
+        String username = scanner.nextLine();
+        System.out.print("Введите пароль: ");
+        String password = scanner.nextLine();
+
+        boolean success = userRepository.registerUser(firstName, lastName, phoneNumber, username, password, "user");
+        if (success) {
+            System.out.println("✅ Регистрация успешна!");
+        } else {
+            System.out.println("❌ Ошибка регистрации. Попробуйте снова.");
+        }
     }
 
-    @Override
-    public double getWalletBalance(int userId) {
-        User user = userRepository.getUserById(userId);
-        return user != null ? user.getWalletBalance() : 0.0;
-    }
+    // Меню пользователя
+    public void showUserMenu() {
+        while (true) {
+            System.out.println("\n🛠️ Ваш профиль:");
+            System.out.println("Имя: " + loggedInUser.getFirstName() + " " + loggedInUser.getLastName());
+            System.out.println("Телефон: " + loggedInUser.getPhoneNumber());
+            System.out.println("💰 Баланс: " + loggedInUser.getBalance() + " KZT");
+            System.out.println("🔐 Роль: " + loggedInUser.getRole());
 
-    @Override
-    public boolean updateWalletBalance(int userId, double newBalance) {
-        return userRepository.updateWalletBalance(userId, newBalance);
+            System.out.println("\nВыберите действие:");
+            System.out.println("1. Пополнить кошелек");
+            System.out.println("2. Посмотреть арендованные квартиры");
+            System.out.println("3. Арендовать квартиру");
+            System.out.println("4. Выйти из аккаунта");
+            System.out.print("Ваш выбор: ");
+
+            int choice = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (choice) {
+                case 1 -> System.out.println("💰 Функция пополнения кошелька в разработке.");
+                case 2 -> System.out.println("🏠 Функция просмотра арендованных квартир в разработке.");
+                case 3 -> System.out.println("🛒 Функция аренды квартиры в разработке.");
+                case 4 -> {
+                    System.out.println("👋 Вы вышли из аккаунта.");
+                    loggedInUser = null;
+                    return;
+                }
+                default -> System.out.println("❌ Неверный выбор. Попробуйте снова.");
+            }
+        }
     }
 }

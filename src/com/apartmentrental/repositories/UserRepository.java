@@ -1,112 +1,61 @@
 package com.apartmentrental.repositories;
 
+import com.apartmentrental.data.PostgresDB;
 import com.apartmentrental.models.User;
-import com.apartmentrental.repositories.interfaces.IUserRepository;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
-public class UserRepository implements IUserRepository {
-    private final Connection connection;
+public class UserRepository {
 
-    public UserRepository(Connection connection) {
-        this.connection = connection;
-    }
+    public boolean registerUser(String firstName, String lastName, String phoneNumber, String username, String password, String role) {
+        String sql = "INSERT INTO users (first_name, last_name, phone_number, username, password, role) VALUES (?, ?, ?, ?, ?, ?)";
 
-    @Override
-    public boolean addUser(User user) {
-        try {
-            String query = "INSERT INTO users (first_name, last_name, phone_number, password, wallet_balance) VALUES (?, ?, ?, ?, ?)";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setString(1, user.getFirstName());
-            statement.setString(2, user.getLastName());
-            statement.setString(3, user.getPhoneNumber());
-            statement.setString(4, user.getPassword());
-            statement.setDouble(5, user.getWalletBalance());
-            int rowsInserted = statement.executeUpdate();
-            return rowsInserted > 0;
-        } catch (Exception e) {
+        try (Connection conn = PostgresDB.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, firstName);
+            pstmt.setString(2, lastName);
+            pstmt.setString(3, phoneNumber);
+            pstmt.setString(4, username);
+            pstmt.setString(5, password);
+            pstmt.setString(6, role);
+
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
-        return false;
     }
 
-    @Override
-    public User getUserById(int id) {
-        try {
-            String query = "SELECT * FROM users WHERE id = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setInt(1, id);
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
+    public User loginUser(String username, String password) {
+        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+
+        try (Connection conn = PostgresDB.getInstance().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
                 return new User(
-                        resultSet.getInt("id"),
-                        resultSet.getString("first_name"),
-                        resultSet.getString("last_name"),
-                        resultSet.getString("phone_number"),
-                        resultSet.getString("password"),
-                        resultSet.getDouble("wallet_balance")
+                        rs.getInt("id"),
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
+                        rs.getString("phone_number"),
+                        rs.getString("username"),
+                        rs.getString("password"),
+                        rs.getDouble("balance"),
+                        rs.getString("role")
                 );
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return null;
-    }
-
-    @Override
-    public User getUserByPhoneAndPassword(String phone, String password) {
-        try {
-            String query = "SELECT * FROM users WHERE phone_number = ? AND password = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setString(1, phone);
-            statement.setString(2, password);
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                return new User(
-                        resultSet.getInt("id"),
-                        resultSet.getString("first_name"),
-                        resultSet.getString("last_name"),
-                        resultSet.getString("phone_number"),
-                        resultSet.getString("password"),
-                        resultSet.getDouble("wallet_balance")
-                );
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    @Override
-    public boolean updateWalletBalance(int userId, double newBalance) {
-        try {
-            String query = "UPDATE users SET wallet_balance = ? WHERE id = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setDouble(1, newBalance);
-            statement.setInt(2, userId);
-            int rowsUpdated = statement.executeUpdate();
-            return rowsUpdated > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    @Override
-    public double getUserWalletBalance(int userId) {
-        try {
-            String query = "SELECT wallet_balance FROM users WHERE id = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setInt(1, userId);
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                return resultSet.getDouble("wallet_balance");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
     }
 }
